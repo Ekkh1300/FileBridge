@@ -260,6 +260,9 @@ export const deleteSessionTransfers = (session_id) =>
 
 export const publicTransfer = (r) => ({
   id: r.id,
+  // the id doubles as the server-side identity the client keys downloads on —
+  // the initial HTTP list (transfers-set) must carry it too, not only WS events
+  serverId: r.id,
   filename: r.filename,
   mime: r.mime || r.sniff_mime || '',
   kind: r.sniff_kind || 'file',

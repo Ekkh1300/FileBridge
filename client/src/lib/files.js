@@ -69,3 +69,50 @@ export function guessMime(name = '') {
   };
   return map[ext] || '';
 }
+
+/** Above this size use the plain URL download (no whole file in RAM). */
+export const BLOB_SAVE_MAX = 128 * 1024 * 1024;
+
+/**
+ * Download without navigating: fetch the file as a Blob and save it from the page
+ * itself. Navigation downloads (plain href) get flagged/blocked harder by Chrome
+ * on plain-HTTP LAN pages; blob saves from the page are treated like page data.
+ */
+export async function saveViaBlob(url, filename) {
+  let res;
+  try {
+    res = await fetch(url, { credentials: 'same-origin' });
+    console.log(`[download] fetch ${url} -> HTTP ${res.status}`);
+  } catch (e) {
+    console.warn('[download] fetch failed:', e?.message);
+    throw new Error(`network: ${e.message}`);
+  }
+  if (!res.ok) {
+    let msg = `HTTP ${res.status}`;
+    try { msg = (await res.json())?.message || msg; } catch { /* not json */ }
+    throw new Error(msg);
+  }
+  let blob;
+  try {
+    blob = await res.blob();
+    console.log(`[download] blob ready: ${blob.size} bytes (${blob.type})`);
+  } catch (e) {
+    console.warn('[download] blob read failed:', e?.message);
+    throw e;
+  }
+  try {
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = filename || 'file';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+    console.log(`[download] anchor clicked: "${a.download}" (${blob.size} B)`);
+  } catch (e) {
+    console.warn('[download] anchor click failed:', e?.message);
+    throw e;
+  }
+}

@@ -5,7 +5,7 @@ import {
 import { useStore } from '../lib/store.jsx';
 import { queue } from '../lib/upload.js';
 import { api, rawUrl, fileUrl } from '../lib/api.js';
-import { fmtBytes, fmtTime, inlineable } from '../lib/files.js';
+import { saveViaBlob, BLOB_SAVE_MAX, fmtBytes, fmtTime, inlineable } from '../lib/files.js';
 import Thumb from './Thumb.jsx';
 
 export default function TransferList() {
@@ -57,6 +57,23 @@ function Row({ item, me, wsStatus }) {
   const failed = item.status === 'failed';
   const uploading = item.status === 'uploading' || item.status === 'waiting';
   const done = item.status === 'done';
+
+  /** Standalone PWAs (added to the home screen) silently swallow blob anchor
+   *  downloads on Android Chrome — use the direct-URL download there. Tiny
+   *  files take the blob path; on any blob failure fall back to the URL. */
+  const startDownload = () => {
+    const url = fileUrl(item.serverId);
+    const standalone =
+      window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone === true;
+    if (standalone || !(item.size <= BLOB_SAVE_MAX)) {
+      window.location.assign(url);
+      return;
+    }
+    saveViaBlob(url, item.filename).catch((e) => {
+      toast(e.message, 'bad');
+      window.location.assign(url);
+    });
+  };
 
   const statusLabel =
     item.status === 'waiting'
@@ -139,7 +156,7 @@ function Row({ item, me, wsStatus }) {
           </RowBtn>
         )}
         {done && item.serverId && (
-          <RowBtn label="Download" href={fileUrl(item.serverId)}>
+          <RowBtn label="Download" onClick={startDownload}>
             <Download size={16} />
           </RowBtn>
         )}

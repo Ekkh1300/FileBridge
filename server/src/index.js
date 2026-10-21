@@ -49,13 +49,17 @@ async function main() {
         "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'self'"
       );
     } else if (url.startsWith('/files/')) {
-      // uploaded files are data, never programs: hard sandbox on everything served
+      // uploaded files are data, never programs: hard sandbox on everything served.
+      // 'allow-downloads' is required or Chrome blocks saving sandboxed responses.
       reply.header(
         'Content-Security-Policy',
         ct === 'application/octet-stream'
-          ? "default-src 'none'; sandbox"
+          ? "default-src 'none'; sandbox allow-downloads"
           : "default-src 'none'"
       );
+    }
+    if (url.startsWith('/files/')) {
+      console.log(`[files] ${req.method} ${url.split('?')[0]} -> ${reply.statusCode} (${reply.getHeader('content-length') || '-'}B)`);
     }
     done();
   });
