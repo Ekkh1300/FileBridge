@@ -30,6 +30,7 @@ async function main() {
   /* cookies → request.cookies (no plugin needed) */
   app.addHook('onRequest', (req, reply, done) => {
     req.cookies = parseCookies(req.headers.cookie || '');
+    req._t0 = Date.now();
     done();
   });
 
@@ -59,7 +60,8 @@ async function main() {
       );
     }
     if (url.startsWith('/files/')) {
-      console.log(`[files] ${req.method} ${url.split('?')[0]} -> ${reply.statusCode} (${reply.getHeader('content-length') || '-'}B)`);
+      const ms = Date.now() - (req._t0 || Date.now());
+      console.log(`[files] ${req.method} ${url.split('?')[0]} -> ${reply.statusCode} (${reply.getHeader('content-length') || '-'}B, ${ms}ms total)`);
     }
     done();
   });

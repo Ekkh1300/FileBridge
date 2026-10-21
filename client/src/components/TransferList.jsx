@@ -69,7 +69,12 @@ function Row({ item, me, wsStatus }) {
       window.location.assign(url);
       return;
     }
-    saveViaBlob(url, item.filename).catch((e) => {
+    saveViaBlob(url, item.filename, ({ stage, elapsed }) => {
+      const s = `${elapsed.toFixed(1)}s`;
+      if (stage === 'headers') toast(`download: server answered in ${s}`, 'info');
+      if (stage === 'blob') toast(`file received (${s}) — saving…`, 'info');
+      if (stage === 'saved') toast(`download launched (${s})`, 'good');
+    }).catch((e) => {
       toast(e.message, 'bad');
       window.location.assign(url);
     });

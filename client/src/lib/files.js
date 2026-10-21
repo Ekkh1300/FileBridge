@@ -71,18 +71,21 @@ export function guessMime(name = '') {
 }
 
 /** Above this size use the plain URL download (no whole file in RAM). */
-export const BLOB_SAVE_MAX = 128 * 1024 * 1024;
+export const BLOB_SAVE_MAX = 32 * 1024 * 1024;
 
 /**
  * Download without navigating: fetch the file as a Blob and save it from the page
  * itself. Navigation downloads (plain href) get flagged/blocked harder by Chrome
  * on plain-HTTP LAN pages; blob saves from the page are treated like page data.
  */
-export async function saveViaBlob(url, filename) {
+export async function saveViaBlob(url, filename, onStage = null) {
+  const t0 = performance.now();
+  const say = (e, m) => { onStage?.({ elapsed: (performance.now() - t0) / 1000, ...e }, m); };
   let res;
   try {
     res = await fetch(url, { credentials: 'same-origin' });
-    console.log(`[download] fetch ${url} -> HTTP ${res.status}`);
+    console.log(`[download] fetch ${url} -> HTTP ${res.status} after ${(performance.now() - t0).toFixed(0)}ms`);
+    say({ stage: 'headers' });
   } catch (e) {
     console.warn('[download] fetch failed:', e?.message);
     throw new Error(`network: ${e.message}`);
@@ -95,7 +98,8 @@ export async function saveViaBlob(url, filename) {
   let blob;
   try {
     blob = await res.blob();
-    console.log(`[download] blob ready: ${blob.size} bytes (${blob.type})`);
+    console.log(`[download] blob ready: ${blob.size} bytes (${blob.type}) after ${(performance.now() - t0).toFixed(0)}ms total`);
+    say({ stage: 'blob' });
   } catch (e) {
     console.warn('[download] blob read failed:', e?.message);
     throw e;
@@ -110,7 +114,8 @@ export async function saveViaBlob(url, filename) {
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
-    console.log(`[download] anchor clicked: "${a.download}" (${blob.size} B)`);
+    console.log(`[download] anchor clicked: "${a.download}" (${blob.size} B, ${(performance.now() - t0).toFixed(0)}ms total)`);
+    say({ stage: 'saved' });
   } catch (e) {
     console.warn('[download] anchor click failed:', e?.message);
     throw e;
