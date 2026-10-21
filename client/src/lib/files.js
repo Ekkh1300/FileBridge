@@ -70,54 +70,59 @@ export function guessMime(name = '') {
   return map[ext] || '';
 }
 
-/** Above this size use the plain URL download (no whole file in RAM). */
-export const BLOB_SAVE_MAX = 32 * 1024 * 1024;
+/** Above this size hand off to the browser's native downloader (no whole file in RAM). */
+export const BLOB_SAVE_MAX = 192 * 1024 * 1024;
+
+/** Save a blob without navigating (anchor click). */
+function saveBlob(blob, filename) {
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = objectUrl;
+  a.download = filename || 'file';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+  return blob.size;
+}
 
 /**
- * Download without navigating: fetch the file as a Blob and save it from the page
- * itself. Navigation downloads (plain href) get flagged/blocked harder by Chrome
- * on plain-HTTP LAN pages; blob saves from the page are treated like page data.
+ * Stream a file into a blob with live progress — enables the in-page download
+ * bar without buffering blindly: every chunk is accounted the moment it lands.
  */
-export async function saveViaBlob(url, filename, onStage = null) {
-  const t0 = performance.now();
-  const say = (e, m) => { onStage?.({ elapsed: (performance.now() - t0) / 1000, ...e }, m); };
-  let res;
-  try {
-    res = await fetch(url, { credentials: 'same-origin' });
-    console.log(`[download] fetch ${url} -> HTTP ${res.status} after ${(performance.now() - t0).toFixed(0)}ms`);
-    say({ stage: 'headers' });
-  } catch (e) {
-    console.warn('[download] fetch failed:', e?.message);
-    throw new Error(`network: ${e.message}`);
-  }
+export async function saveViaStream(url, filename, onProgress = null) {
+  const res = await fetch(url, { credentials: 'same-origin' });
   if (!res.ok) {
     let msg = `HTTP ${res.status}`;
     try { msg = (await res.json())?.message || msg; } catch { /* not json */ }
     throw new Error(msg);
   }
-  let blob;
-  try {
-    blob = await res.blob();
-    console.log(`[download] blob ready: ${blob.size} bytes (${blob.type}) after ${(performance.now() - t0).toFixed(0)}ms total`);
-    say({ stage: 'blob' });
-  } catch (e) {
-    console.warn('[download] blob read failed:', e?.message);
-    throw e;
+  console.log(`[download] fetch ${url} -> HTTP ${res.status}`);
+  const total = Number(res.headers.get('content-length') || 0);
+  const reader = res.body?.getReader?.();
+  if (!reader) {
+    const blob = await res.blob(); // no streaming support — all at once
+    onProgress?.(blob.size, blob.size);
+    console.log(`[download] saved (non-stream) "${filename}" (${blob.size} B)`);
+    return saveBlob(blob, filename);
   }
-  try {
-    const objectUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = objectUrl;
-    a.download = filename || 'file';
-    a.rel = 'noopener';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
-    console.log(`[download] anchor clicked: "${a.download}" (${blob.size} B, ${(performance.now() - t0).toFixed(0)}ms total)`);
-    say({ stage: 'saved' });
-  } catch (e) {
-    console.warn('[download] anchor click failed:', e?.message);
-    throw e;
+  const chunks = [];
+  let received = 0;
+  let lastEmit = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    received += value.length;
+    const now = Date.now();
+    if (onProgress && now - lastEmit > 150) {
+      lastEmit = now;
+      onProgress(received, total || received);
+    }
   }
+  onProgress?.(received, total || received);
+  console.log(`[download] streamed "${filename}" (${received} B) — saving`);
+  const blob = new Blob(chunks, { type: res.headers.get('content-type') || 'application/octet-stream' });
+  return saveBlob(blob, filename);
 }

@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Download, ExternalLink, X, RefreshCw, Trash2, ArrowUpRight, ArrowDownLeft, CircleAlert, CheckCircle2, Send,
 } from 'lucide-react';
 import { useStore } from '../lib/store.jsx';
 import { queue } from '../lib/upload.js';
 import { api, rawUrl, fileUrl } from '../lib/api.js';
-import { saveViaBlob, BLOB_SAVE_MAX, fmtBytes, fmtTime, inlineable } from '../lib/files.js';
+import { saveViaStream, BLOB_SAVE_MAX, fmtBytes, fmtTime, inlineable } from '../lib/files.js';
 import Thumb from './Thumb.jsx';
 
 export default function TransferList() {
@@ -57,27 +57,31 @@ function Row({ item, me, wsStatus }) {
   const failed = item.status === 'failed';
   const uploading = item.status === 'uploading' || item.status === 'waiting';
   const done = item.status === 'done';
+  const [dl, setDl] = useState(null); // { received, total } while the page saves the file
 
-  /** Standalone PWAs (added to the home screen) silently swallow blob anchor
-   *  downloads on Android Chrome — use the direct-URL download there. Tiny
-   *  files take the blob path; on any blob failure fall back to the URL. */
+  /** In-page save with a live progress bar (<= BLOB_SAVE_MAX); bigger files go
+   *  to the browser's own downloader which streams straight to disk. */
   const startDownload = () => {
+    if (dl) return; // already saving
     const url = fileUrl(item.serverId);
     const standalone =
       window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone === true;
     if (standalone || !(item.size <= BLOB_SAVE_MAX)) {
       window.location.assign(url);
+      toast('large file — saving through Chrome\'s downloader, watch its download icon', 'info');
       return;
     }
-    saveViaBlob(url, item.filename, ({ stage, elapsed }) => {
-      const s = `${elapsed.toFixed(1)}s`;
-      if (stage === 'headers') toast(`download: server answered in ${s}`, 'info');
-      if (stage === 'blob') toast(`file received (${s}) — saving…`, 'info');
-      if (stage === 'saved') toast(`download launched (${s})`, 'good');
-    }).catch((e) => {
-      toast(e.message, 'bad');
-      window.location.assign(url);
-    });
+    setDl({ received: 0, total: item.size });
+    saveViaStream(url, item.filename, (received, total) => setDl({ received, total }))
+      .then(() => {
+        setDl(null);
+        toast('download ready', 'good');
+      })
+      .catch((e) => {
+        setDl(null);
+        toast(e.message, 'bad');
+        window.location.assign(url);
+      });
   };
 
   const statusLabel =
@@ -130,6 +134,12 @@ function Row({ item, me, wsStatus }) {
           <div className="mt-2 flex items-center gap-2">
             <div className="prog flex-1"><span style={{ width: `${pct}%` }} /></div>
             <span className="text-xs tabular-nums text-soft w-9 text-right">{pct}%</span>
+          </div>
+        )}
+        {dl && (
+          <div className="mt-2 flex items-center gap-2">
+            <div className="prog flex-1"><span style={{ width: `${Math.min(100, Math.round((dl.received / (dl.total || item.size)) * 100))}%` }} /></div>
+            <span className="text-xs tabular-nums text-soft">{fmtBytes(dl.received)} / {fmtBytes(dl.total || item.size)}</span>
           </div>
         )}
         {failed && item.error && (
