@@ -1,0 +1,213 @@
+@import "tailwindcss";
+
+/* ————— Theme tokens wired through CSS vars (semantic, class-swapped) ————— */
+
+@theme {
+  --font-sans: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Roboto", "Helvetica Neue", Arial, sans-serif;
+  --color-bg: var(--fb-bg);
+  --color-surface: var(--fb-surface);
+  --color-raised: var(--fb-raised);
+  --color-line: var(--fb-line);
+  --color-ink: var(--fb-ink);
+  --color-dim: var(--fb-dim);
+  --color-soft: var(--fb-soft);
+  --color-accent: var(--fb-accent);
+  --color-accent-soft: var(--fb-accent-soft);
+  --color-lav: var(--fb-lav);
+  --color-good: var(--fb-good);
+  --color-warn: var(--fb-warn);
+  --color-risk: var(--fb-risk);
+  --color-onaccent: var(--fb-onaccent);
+}
+
+html { color-scheme: dark; }
+.theme-light { color-scheme: light; }
+
+.theme-dark {
+  --fb-bg: #0a0c11;
+  --fb-surface: #10141c;
+  --fb-raised: #181d27;
+  --fb-line: #242b39;
+  --fb-ink: #e9edf5;
+  --fb-dim: #9aa3b5;
+  --fb-soft: #6c7587;
+  --fb-accent: #2cc9e5;
+  --fb-accent-soft: rgba(44, 201, 229, 0.14);
+  --fb-lav: #8e97ff;
+  --fb-good: #35d49a;
+  --fb-warn: #fbbf24;
+  --fb-risk: #f87171;
+  --fb-onaccent: #04222c;
+}
+.theme-light {
+  --fb-bg: #edf0f6;
+  --fb-surface: #ffffff;
+  --fb-raised: #f3f5f9;
+  --fb-line: #dee3ed;
+  --fb-ink: #171b23;
+  --fb-dim: #59626f;
+  --fb-soft: #8b93a4;
+  --fb-accent: #0b9fc0;
+  --fb-accent-soft: rgba(11, 159, 192, 0.13);
+  --fb-lav: #5d6ee8;
+  --fb-good: #0e9f6e;
+  --fb-warn: #b45309;
+  --fb-risk: #dc2626;
+  --fb-onaccent: #ffffff;
+}
+
+/* ————— Base ————— */
+
+html, body { height: 100%; }
+body {
+  background: var(--fb-bg);
+  color: var(--fb-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+::selection { background: var(--fb-accent-soft); }
+
+:focus-visible {
+  outline: 2px solid var(--fb-accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* thin scrollbars */
+* { scrollbar-width: thin; scrollbar-color: var(--fb-line) transparent; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: var(--fb-line); border-radius: 8px; }
+
+/* ————— Components (raw CSS keeps specificity predictable) ————— */
+
+@layer components {
+  .card {
+    background: var(--fb-surface);
+    border: 1px solid var(--fb-line);
+    border-radius: 1.25rem;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.9rem;
+    font-weight: 550;
+    font-size: 0.95rem;
+    padding: 0.62rem 1.05rem;
+    min-height: 2.85rem;
+    border: 1px solid transparent;
+    cursor: pointer;
+    user-select: none;
+    transition: filter 0.15s, background-color 0.15s, border-color 0.15s, color 0.15s, transform 0.06s;
+    white-space: nowrap;
+  }
+  .btn:active:not(:disabled) { transform: translateY(1px); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .btn-primary { background: var(--fb-accent); color: var(--fb-onaccent); }
+  .btn-primary:hover:not(:disabled) { filter: brightness(1.09); }
+
+  .btn-soft { background: var(--fb-raised); color: var(--fb-ink); border-color: var(--fb-line); }
+  .btn-soft:hover:not(:disabled) {
+    border-color: color-mix(in oklab, var(--fb-accent) 45%, var(--fb-line));
+  }
+
+  .btn-ghost { color: var(--fb-dim); min-height: 2.4rem; padding: 0.35rem 0.7rem; }
+  .btn-ghost:hover:not(:disabled) { color: var(--fb-ink); background: var(--fb-raised); }
+
+  .btn-danger { color: var(--fb-risk); border-color: transparent; }
+  .btn-danger:hover:not(:disabled) { background: color-mix(in oklab, var(--fb-risk) 12%, transparent); }
+
+  .input {
+    width: 100%;
+    background: var(--fb-bg);
+    border: 1px solid var(--fb-line);
+    color: var(--fb-ink);
+    border-radius: 0.9rem;
+    padding: 0.62rem 0.9rem;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    font-size: 0.95rem;
+  }
+  .input::placeholder { color: var(--fb-soft); }
+  .input:focus {
+    border-color: var(--fb-accent);
+    box-shadow: 0 0 0 3px var(--fb-accent-soft);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.42rem;
+    border-radius: 999px;
+    padding: 0.32rem 0.72rem;
+    background: var(--fb-raised);
+    border: 1px solid var(--fb-line);
+    font-size: 0.78rem;
+    color: var(--fb-dim);
+    white-space: nowrap;
+  }
+
+  .prog {
+    height: 4px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--fb-line);
+  }
+  .prog > span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--fb-accent), var(--fb-lav));
+    transition: width 0.25s ease;
+  }
+
+  .toast {
+    background: var(--fb-raised);
+    border: 1px solid var(--fb-line);
+    border-radius: 0.9rem;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+  }
+
+  .link-btn {
+    color: var(--fb-accent);
+    cursor: pointer;
+    font-weight: 550;
+  }
+  .link-btn:hover { text-decoration: underline; }
+
+  .up-down-steps { animation: fb-pulse 1.6s ease-in-out infinite; }
+  @keyframes fb-pulse {
+    0%, 100% { opacity: 0.55; }
+    50% { opacity: 1; }
+  }
+
+  .toast-in { animation: fb-toast-in 0.28s cubic-bezier(0.22, 1, 0.36, 1); }
+  @keyframes fb-toast-in {
+    from { opacity: 0; transform: translateY(10px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .fade-in { animation: fb-fade-in 0.35s ease both; }
+  @keyframes fb-fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .link-line { animation: fb-link 1.3s linear infinite; }
+  @keyframes fb-link {
+    from { background-position: 0% 0; }
+    to { background-position: 200% 0; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
