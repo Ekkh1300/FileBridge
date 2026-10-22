@@ -14,7 +14,8 @@ import {
 } from './config.js';
 import { parseCookies } from './util.js';
 import { setupWS, stopHeartbeat } from './ws.js';
-import { startCleanup, stopCleanup } from './cleanup.js';
+import { startCleanup, stopCleanup, endSessionNow } from './cleanup.js';
+import { requireDevice } from './guard.js';
 import authRoutes from './routes/auth.js';
 import transferRoutes from './routes/transfers.js';
 import messageRoutes from './routes/messages.js';
@@ -97,6 +98,17 @@ async function main() {
     console.warn('[boot] client build not found — run:  npm run build -w client');
   }
 
+  /* graceful close from inside the app: wipe the session, answer, then quit.
+     Only the host PC may do this — a phone must not be able to kill the app. */
+  app.post('/api/app/quit', { preHandler: requireDevice }, async (req, reply) => {
+    if (req.fbd.kind !== 'host') {
+      return reply.code(403).send({ code: 'forbidden', message: 'Only the host computer can close FileBridge.' });
+    }
+    try { await endSessionNow(req.fbd.session.id); } catch { /* ignore */ }
+    reply.send({ ok: true, bye: true });
+    setTimeout(() => { gracefulExit(app); }, 250);
+  });
+
   app.setNotFoundHandler((req, reply) => {
     const url = req.raw.url || '';
     const wantsHtml = req.method === 'GET' && (req.headers.accept || '').includes('text/html');
@@ -136,7 +148,8 @@ async function main() {
     console.log('  Other LAN addresses:');
     for (const u of urls.slice(1, -1)) console.log(`    ${u}`);
   }
-  console.log(`  Storage: ${STORAGE_DIR}   (auto-cleanup is on)\n`);
+  console.log(`  Storage: ${STORAGE_DIR}   (auto-cleanup is on)`);
+  console.log('  Close it: Settings → Close FileBridge (deletes received files), or close this window.\n');
 
   if (IS_PACKAGED) {
     openBrowser(urls[urls.length - 1]);
@@ -156,10 +169,16 @@ function openBrowser(url) {
   } catch { /* browser opening is a convenience, not a requirement */ }
 }
 
+/** Stop everything and leave: sockets closed, files already wiped, window closes. */
+async function gracefulExit(app) {
+  stopHeartbeat();
+  stopCleanup();
+  try { await app.close(); } catch { /* ignore */ }
+  process.exit(0);
+}
+
 function stopHeartbeatOnExit(app) {
   const shutdown = async () => {
-    stopHeartbeat();
-    stopCleanup();
     try { await app.close(); } catch { /* ignore */ }
     process.exit(0);
   };

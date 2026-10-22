@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings2, Sun, Moon, Bell, BellOff, Smartphone, Monitor, LogOut, ShieldOff, X, Trash2 } from 'lucide-react';
+import { Settings2, Sun, Moon, Bell, BellOff, Smartphone, Monitor, LogOut, ShieldOff, X, Trash2, Power } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { useStore } from '../lib/store.jsx';
 import { getTheme, setTheme, THEMES } from '../lib/theme.js';
@@ -10,10 +10,26 @@ export default function SettingsModal({ onClose }) {
   const { state, dispatch, boot, toast } = useStore();
   const [name, setName] = useState(state.me?.name || '');
   const [savingName, setSavingName] = useState(false);
+  const [closed, setClosed] = useState(false);
 
   const close = (e) => {
     if (e?.target === e?.currentTarget) onClose();
   };
+
+  if (closed) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-6 text-center">
+        <div className="card p-6 max-w-sm toast-in">
+          <h2 className="font-bold flex items-center justify-center gap-2">
+            <Power size={17} className="text-accent" /> FileBridge is closed
+          </h2>
+          <p className="text-sm text-soft mt-2">
+            All received files were deleted and the app has shut down. You can close this tab now.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -178,6 +194,31 @@ export default function SettingsModal({ onClose }) {
           >
             <Trash2 size={15} /> End session for everyone
           </button>
+        )}
+
+        {/* close the app (host only) */}
+        {state.isHost && (
+          <button
+            className="btn btn-danger w-full mt-2 text-sm border border-line"
+            onClick={async () => {
+              if (!confirm('Close FileBridge? The app shuts down and every received file is deleted now.')) return;
+              try {
+                await api.quit();
+                setClosed(true);
+              } catch (e) {
+                toast(e.message, 'bad');
+              }
+            }}
+          >
+            <Power size={15} /> Close FileBridge
+          </button>
+        )}
+
+        {state.isHost && (
+          <p className="mt-2 text-xs text-soft">
+            Closing the app ends the session and wipes received files. Closing the black console window works too,
+            but then the files stay on disk until auto-delete.
+          </p>
         )}
 
         <p className="mt-4 text-xs text-soft leading-relaxed border-t border-line pt-3">

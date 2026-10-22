@@ -29,6 +29,7 @@ export const api = {
   renewPairing: () => request('POST', '/api/session/pairing/renew'),
   setRetention: (retention) => request('POST', '/api/session/retention', { retention }),
   endSession: () => request('POST', '/api/session/end'),
+  quit: () => request('POST', '/api/app/quit'),
   updateDevice: (name) => request('PATCH', '/api/device', { name }),
   leave: () => request('POST', '/api/device/leave'),
   revoke: (deviceId) => request('POST', '/api/device/revoke', { deviceId }),
