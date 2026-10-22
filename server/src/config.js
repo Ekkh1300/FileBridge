@@ -1,5 +1,6 @@
 import os from 'node:os';
 import path from 'node:path';
+import fs from 'node:fs';
 
 const int = (v, d) => {
   const n = Number(v);
@@ -10,15 +11,44 @@ const bytes = (v, d) => int(v, d);
 /** True when running from a compiled standalone executable (pkg). */
 export const IS_PACKAGED = Boolean(process.pkg);
 
-/** Root for real (writable) files: next to the .exe when packaged, project dir in dev. */
-const APP_ROOT = IS_PACKAGED ? path.dirname(process.execPath) : process.cwd();
+/** Where the program itself lives (next to the .exe when packaged). */
+const EXE_DIR = IS_PACKAGED ? path.dirname(process.execPath) : process.cwd();
+
+/**
+ * Where real files (database + received files) live.
+ *  - dev:        <repo>/server/{storage,data}
+ *  - portable:   next to the exe, in one tidy "FileBridge Data" folder
+ *  - installed:  the exe folder may be read-only (Program Files), so fall back
+ *                to %LOCALAPPDATA%\FileBridge
+ */
+function isWritable(dir) {
+  try {
+    fs.accessSync(dir, fs.constants.W_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const DATA_BASE = !IS_PACKAGED
+  ? EXE_DIR
+  : (isWritable(EXE_DIR)
+    ? path.join(EXE_DIR, 'FileBridge Data')
+    : path.join(process.env.LOCALAPPDATA || os.homedir(), 'FileBridge'));
 
 export const PORT = int(process.env.PORT, 3000);
 export const HOST = process.env.HOST || '0.0.0.0';
-export const STORAGE_DIR = process.env.STORAGE_DIR
-  || path.join(APP_ROOT, IS_PACKAGED ? 'FileBridge Data' : '', IS_PACKAGED ? 'storage' : 'storage');
-export const DATA_DIR = process.env.DATA_DIR
-  || path.join(APP_ROOT, IS_PACKAGED ? 'FileBridge Data' : '', IS_PACKAGED ? 'data' : 'data');
+
+/**
+ * Public base URL of this bridge — set it when the app is reached through a
+ * reverse proxy or a VPN (e.g. Tailscale Serve → https://host.tailnet.ts.net).
+ * The pairing QR then points to that address instead of the raw LAN IP.
+ */
+export const PUBLIC_URL = (process.env.PUBLIC_URL || '').trim().replace(/\/+$/, '');
+export const STORAGE_DIR = process.env.STORAGE_DIR || path.join(DATA_BASE, 'storage');
+export const DATA_DIR = process.env.DATA_DIR || path.join(DATA_BASE, 'data');
+/** Printed at boot so the user knows where the files live. */
+export const DATA_ROOT_DIR = DATA_BASE;
 
 /** Idle TTL for a whole session. */
 export const SESSION_IDLE_MS = bytes(process.env.SESSION_IDLE_H, 24) * 3600 * 1000;

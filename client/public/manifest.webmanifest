@@ -1,29 +1,57 @@
 {
-  "name": "FileBridge",
+  "id": "/",
+  "name": "FileBridge — LAN transfer",
   "short_name": "FileBridge",
-  "description": "Fast local transfer of files, text and clipboard between your phone and PC, over your own Wi-Fi.",
+  "description": "Instant two-way transfer of files, text and clipboard between your phone and PC, over your own Wi-Fi. No account, no cloud.",
+  "lang": "en",
+  "dir": "ltr",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
   "orientation": "any",
   "background_color": "#0a0c11",
   "theme_color": "#0a0c11",
+  "categories": ["utilities", "productivity", "file-sharing"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Send a photo",
+      "short_name": "Photo",
+      "url": "/?action=photo",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Send text",
+      "short_name": "Text",
+      "url": "/?action=text",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }

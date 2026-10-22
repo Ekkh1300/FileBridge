@@ -6,6 +6,7 @@ import {
   MAX_DEVICES,
   MAX_NAME_LEN,
   PAIRING_TTL_MS,
+  PUBLIC_URL,
   RETENTIONS,
   guessDefaultName,
   lanUrls,
@@ -30,7 +31,10 @@ async function pairingPayload(sessionId, { fresh = false } = {}) {
   const pair = fresh ? null : db.latestValidPairing(sessionId);
   const p = pair || db.createPairing(sessionId, PAIRING_TTL_MS);
   const urls = lanUrls();
-  const joinUrl = `${urls[0]}/join/${p.code}`;
+  // With PUBLIC_URL set (reverse proxy / Tailscale Serve) the QR points there,
+  // so the phone joins over https and the app becomes a real, installable PWA.
+  const base = PUBLIC_URL || urls[0];
+  const joinUrl = `${base}/join/${p.code}`;
   let qr = null;
   try {
     qr = await QRCode.toDataURL(joinUrl, {
@@ -45,6 +49,7 @@ async function pairingPayload(sessionId, { fresh = false } = {}) {
     token: p.code,
     expiresAt: p.expires_at,
     urls,
+    publicUrl: PUBLIC_URL || null,
     joinUrl,
     qr,
   };

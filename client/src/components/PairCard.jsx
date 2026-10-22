@@ -147,6 +147,12 @@ export default function PairCard({ defaultOpen = false, compact = false }) {
           <p className={`text-xs mt-1 ${expired ? 'text-risk' : 'text-soft'}`}>
             {qr ? (expired ? 'Code expired — press “New QR”.' : `Expires in ${fmtCountdown(qr.expiresAt - now)}`) : '…'}
           </p>
+          {qr?.publicUrl && (
+            <p className="text-xs mt-2 text-accent break-all">
+              Public address: <span className="font-mono select-all">{qr.publicUrl}</span>
+              <span className="block text-soft mt-0.5">The QR points here — installable as an app on the phone.</span>
+            </p>
+          )}
         </div>
       </div>
 

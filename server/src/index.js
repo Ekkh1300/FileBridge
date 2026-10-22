@@ -10,6 +10,7 @@ import {
   PORT,
   HOST,
   STORAGE_DIR,
+  DATA_DIR,
   lanUrls,
 } from './config.js';
 import { parseCookies } from './util.js';
@@ -149,6 +150,7 @@ async function main() {
     for (const u of urls.slice(1, -1)) console.log(`    ${u}`);
   }
   console.log(`  Storage: ${STORAGE_DIR}   (auto-cleanup is on)`);
+  console.log(`  Data:    ${DATA_DIR}`);
   console.log('  Close it: Settings → Close FileBridge (deletes received files), or close this window.\n');
 
   if (IS_PACKAGED) {

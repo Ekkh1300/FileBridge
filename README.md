@@ -37,14 +37,44 @@ No account, no cloud, no internet, no tracking. A scan of one QR code connects b
 
 ## ⬇️ Download
 
-**Windows (recommended):** grab the portable build from the [latest release](https://github.com/Ekkh1300/FileBridge/releases/latest) — `FileBridge-Portable.zip`.
+**Windows (recommended):** grab the installer from the [latest release](https://github.com/Ekkh1300/FileBridge/releases/latest).
 
-1. Unzip anywhere and double-click **FileBridge.exe** (Windows SmartScreen may say *“unknown publisher”* → **More info → Run anyway**).
+| Asset | What it is |
+|---|---|
+| `FileBridge-Setup-v0.1.0.exe` | **Real installer** — Start-menu entry, optional desktop shortcut, Add/Remove Programs entry, clean uninstall (it even asks whether to delete your received files). Installs per user, no admin rights needed. |
+| `FileBridge-Portable.zip` | The same app as a single portable file — unzip and run, nothing is installed. |
+
+Installing:
+
+1. Run `FileBridge-Setup-v0.1.0.exe` (Windows SmartScreen may say *“unknown publisher”* → **More info → Run anyway**).
 2. The browser opens automatically; press **Start on this computer**.
 3. Allow the Windows firewall prompt on **Private networks** (one time).
-4. Scan the QR with your phone camera. Files land in the `FileBridge Data` folder next to the exe.
+4. Scan the QR with your phone camera. Files land in `FileBridge Data` next to the exe (or in `%LOCALAPPDATA%\FileBridge` when installed in a read-only folder).
 
 > macOS / Linux: run it from source (below) — the server is plain Node.js.
+
+## 📱 Install as an app (PWA) + reach it from anywhere
+
+Over plain `http://` a browser refuses to install a web app. Serve FileBridge over **HTTPS** and it becomes a real app — installable, offline-capable, and it unlocks clipboard read, notifications and Web Crypto.
+
+The easiest way is **Tailscale Serve** (private network, real certificate, no router setup, no port forwarding):
+
+```bash
+npm run tailscale      # prints the exact commands for your machine
+```
+
+```powershell
+# 1) expose the local server over https (only devices in your tailnet can reach it)
+tailscale serve --bg http://127.0.0.1:3000
+
+# 2) start FileBridge so the pairing QR points at that https address
+$env:PUBLIC_URL = "https://your-pc.your-tailnet.ts.net"
+.\FileBridge.exe
+```
+
+On the phone: install Tailscale, join the same tailnet, open the https address → Chrome offers **“Add to Home screen”**. The app then launches full-screen, keeps working offline (cached shell) and can read the clipboard.
+
+Without Tailscale, any reverse proxy with a certificate works the same way — set `PUBLIC_URL` to its address.
 
 ## 🚀 Run from source
 
@@ -208,14 +238,44 @@ New-NetFirewallRule -DisplayName "FileBridge" -Direction Inbound -Action Allow `
 ```powershell
 # یک‌بار: ساخت آیکون + باندل + بسته‌بندی  (خروجی: release/FileBridge.exe + FileBridge-Portable.zip)
 npm run exe
+
+# ساخت installer واقعی (Inno Setup 6/7 — خروجی: release/FileBridge-Setup-v0.1.0.exe)
+npm run installer
 ```
 
+**Installer واقعی** چه می‌کند:
+- نصب per-user (بدون نیاز به Administrator) در `%LOCALAPPDATA%\Programs\FileBridge`
+- آیکون در **منوی استارت** + **شورتکات دسکتاپ** (اختیاری) + ورودی در «Add/Remove Programs»
+- اجرای خودکار برنامه بعد از نصب + راه‌اندازی با **Start on this computer**
+- **حذب تمیز**: unins000.exe همه‌چیز را پاک می‌کند و حتی می‌پرسد «فایل‌های دریافتی و دیتابیس هم پاک شوند؟»
+
 - اجرا: روی `FileBridge.exe` دوبار کلیک کنید — مرورگر خودش باز می‌شود (SmartScreen بار اول: More info → Run anyway).
-- داده‌ها کنار exe در پوشهٔ `FileBridge Data` ذخیره می‌شوند؛ حذف exe = حذف کامل برنامه و داده‌ها (Portable).
+- داده‌ها کنار exe در پوشهٔ `FileBridge Data` ذخیره می‌شوند؛ اگر exe در جای فقط‌خواندنی نصب شود (Program Files) مسیر `%LOCALAPPDATA%\FileBridge` استفاده می‌شود.
 - پورت پیش‌فرض 3000؛ تغییر: `set PORT=3100 && FileBridge.exe`
 - فایروال بار اول: تیک **Private networks** → Allow (همان‌طور که بالا گفتیم؛ برای exe اسم برنامه FileBridge.exe است).
-- اندازهٔ exe حدود 57MB (زمان اجرای node22 داخلی است). برای ساخت نسخه لینوکس/مک همین اسکریپت با تارگت متناسب قابل استفاده است.
+- اندازهٔ exe حدود 57MB (زمان اجرای node22 داخلی است) و installer حدود 16MB. برای ساخت نسخه لینوکس/مک همین اسکریپت با تارگت متناسب قابل استفاده است.
 - بازسازی خودکار: `node tools/build-exe.mjs` باندل esbuild + pkg را اجرا می‌کند.
+
+## نصب به‌عنوان اپ روی گوشی (PWA) + دسترسی از بیرون شبکه
+
+روی `http://` مرورگرها اجازهٔ نصب اپ وب نمی‌دهند. اگر FileBridge را روی **HTTPS** سرو کنید، تبدیل به یک اپ واقعی می‌شود: قابل نصب، قابل اجرای آفلاین، و کلیپ‌بورد/اعلان‌ها/Web Crypto هم فعال می‌شوند.
+
+ساده‌ترین راه: **Tailscale Serve** (شبکهٔ خصوصی، گواهی واقعی، بدون تنظیم مودم و بدون پورت‌فورد):
+
+```powershell
+npm run tailscale     # دستورهای دقیق مخصوص سیستم خودتان را چاپ می‌کند
+
+# ۱) سرو کردن روی https (فقط دستگاه‌های داخل tailnet شما دسترسی دارند)
+tailscale serve --bg http://127.0.0.1:3000
+
+# ۲) اجرای FileBridge طوری که QR به همان آدرس https اشاره کند
+$env:PUBLIC_URL = "https://your-pc.your-tailnet.ts.net"
+.\FileBridge.exe
+```
+
+روی گوشی: Tailscale را نصب و با همان حساب وارد کنید، آدرس https را باز کنید → کروم گزینهٔ **Add to Home screen** را می‌دهد. اپ تمام‌صفحه اجرا می‌شود، آفلاین (پوستهٔ کش‌شده) هم کار می‌کند و کلیپ‌بورد خواندنی می‌شود.
+
+بدون Tailscale هم هر reverse proxy دارای گواهی کار می‌کند — کافی است `PUBLIC_URL` را روی آدرسش بگذارید.
 
 ## تست
 
@@ -231,6 +291,16 @@ node server/test/smoke.mjs
 ```
 share op/
 ├─ package.json          # npm workspaces (server + client)
+├─ installer/
+│  └─ filebridge.iss     # Inno Setup: نصب واقعی، منوی استارت، شورتکات، uninstall تمیز
+├─ tools/
+│  ├─ build-exe.mjs      # esbuild + pkg → release/FileBridge.exe
+│  ├─ make-ico.mjs       # آیکون چندسایز .ico
+│  ├─ gen-icons.mjs      # PNG آیکون‌های PWA
+│  └─ tailscale-info.mjs # راهنمای HTTPS با Tailscale Serve
+├─ client/public/
+│  ├─ sw.js              # service worker (PWA: نصب + آفلاین، بدون کش کردن داده‌ها)
+│  └─ manifest.webmanifest
 ├─ server/
 │  ├─ src/
 │  │  ├─ index.js        # بوت Fastify، هدرهای امنیتی، سرو SPA
