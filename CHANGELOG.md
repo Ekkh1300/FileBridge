@@ -17,6 +17,9 @@ First public release.
 - **Session management** — device rename, guest revocation, leave-session, retention policy (1 h / 24 h / 7 d / never), end-session wipes every received file immediately.
 - **Connection status** — 🟢 connected / 🟡 reconnecting / 🔴 offline with automatic reconnection and list resync.
 - **Standalone Windows build** — `FileBridge.exe` with the Node runtime inside, an icon, and a portable data folder next to it.
+- **Real Windows installer** (Inno Setup) — per-user install, Start-menu entry, optional desktop shortcut, Add/Remove Programs entry, and a clean uninstall that offers to delete the received files too.
+- **Installable as a PWA** — service worker (app shell cached, live data never cached) plus a full manifest; over HTTPS the phone can add it to the home screen and then clipboard read, notifications and an offline shell work.
+- **HTTPS / access from anywhere** — set `PUBLIC_URL` (e.g. behind Tailscale Serve) and the pairing QR points at that address; `npm run tailscale` prints the exact commands.
 - **Graceful close** — `Settings → Close FileBridge` wipes the session and shuts the app down cleanly.
 - **Dark & light themes**, mobile-first layout, toasts, and a Persian README.
 
