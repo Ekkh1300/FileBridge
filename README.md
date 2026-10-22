@@ -1,3 +1,100 @@
+<p align="center">
+  <img src="docs/social-preview.png" alt="FileBridge — LAN transfer between phone and PC" width="880">
+</p>
+
+<p align="center">
+  <a href="https://github.com/Ekkh1300/FileBridge/releases/latest"><img alt="Download for Windows" src="https://img.shields.io/github/v/release/Ekkh1300/FileBridge?style=for-the-badge&label=%E2%9A%99%20Download%20for%20Windows&color=22d3ee"></a>
+  <img alt="Node" src="https://img.shields.io/badge/node-%3E%3D22.5-5FA04E?style=for-the-badge&logo=node">
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-a78bfa?style=for-the-badge">
+  <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-38bdf8?style=for-the-badge">
+</p>
+
+# FileBridge
+
+**Move files, text and clipboard between your phone and PC — over your own Wi‑Fi, in seconds.**
+No account, no cloud, no internet, no tracking. A scan of one QR code connects both devices.
+
+> 🇮🇷 [راهنمای کامل فارسی](#filebridge--انتقال-سریع-فایل-متن-و-کلیپ‌بورد-بین-موبایل-و-کامپیوتر) — setup, security notes, limitations and the Persian quick start live further down this page.
+
+![FileBridge main screen](docs/screenshot-studio.png)
+
+---
+
+## ✨ Features
+
+| | |
+|---|---|
+| 📱 **QR pairing** | The PC shows a QR, the phone scans it, done. No typing IPs, no ports. |
+| 🔁 **Two-way, real time** | Files, photos, PDFs, text and clipboard flow in both directions over WebSocket. |
+| 📦 **Up to 2 GB per file** | Chunked 4 MB uploads with **resume** — if the Wi‑Fi drops, it continues where it stopped. |
+| 🖼️ **Original quality previews** | Photos, videos and PDFs preview inline; everything else is served as a safe download. |
+| 📋 **Clipboard & text** | One-tap clipboard send/paste with a small history. |
+| 📊 **Live progress** | Per-file progress bars for uploads *and* downloads (percent + MB transferred). |
+| 🕒 **Auto-delete** | Received files are removed after 1 h / 24 h / 7 d / never — they never leave the host PC. |
+| 🔒 **Hardened** | HttpOnly device tokens (SHA‑256 at rest), isolated sessions, strict CSP sandboxing, rate limits, magic-byte file typing. |
+| 🖥️ **Standalone `.exe`** | One 57 MB file with the Node runtime inside — no install, no Node.js, no internet needed. |
+| 🌗 **Dark & light, mobile-first** | Designed phone-first, works on any modern browser. |
+
+## ⬇️ Download
+
+**Windows (recommended):** grab the portable build from the [latest release](https://github.com/Ekkh1300/FileBridge/releases/latest) — `FileBridge-Portable.zip`.
+
+1. Unzip anywhere and double-click **FileBridge.exe** (Windows SmartScreen may say *“unknown publisher”* → **More info → Run anyway**).
+2. The browser opens automatically; press **Start on this computer**.
+3. Allow the Windows firewall prompt on **Private networks** (one time).
+4. Scan the QR with your phone camera. Files land in the `FileBridge Data` folder next to the exe.
+
+> macOS / Linux: run it from source (below) — the server is plain Node.js.
+
+## 🚀 Run from source
+
+```bash
+git clone https://github.com/Ekkh1300/FileBridge.git
+cd FileBridge
+npm install        # server + client workspaces
+npm run build      # build the web client
+npm start          # serve on http://localhost:3000
+```
+
+Development mode with hot reload: `npm run dev` (API on `:3000`, Vite on `:5173`).
+Build the standalone executable yourself: `npm run exe` → `release/FileBridge.exe`.
+
+## 🏗️ How it works
+
+```
+phone  ──HTTP/WS──▶  Fastify 5  ──▶  node:sqlite (sessions, devices, transfers)
+                        │
+                        ├── @fastify/websocket  → live events (transfer progress, text, clipboard)
+                        ├── chunked upload API → 4 MB chunks, resumable, sender-only writes
+                        └── @fastify/static    → the React 18 + Vite client, served by the same server
+```
+
+* **One process, one port.** The same Node server serves the API, the WebSocket hub and the web UI — nothing else to install or configure.
+* **No native dependencies.** Storage is Node's built-in `node:sqlite`; everything else is pure JavaScript.
+
+## 🔒 Security model
+
+* Session cookie `fb_tok` is **HttpOnly** — unreadable from JavaScript; only its SHA‑256 hash is stored.
+* Sessions are **isolated**: a device of one session gets `404` for another session's files and messages.
+* Uploaded files are **never executed**: their real type is detected by magic bytes, only inert types
+  (image / PDF / video / audio / plain text) are served inline, and everything is served with
+  `Content-Security-Policy: default-src 'none'; sandbox allow-downloads` + `X-Content-Type-Options: nosniff`.
+* Filenames are sanitised, on-disk paths are UUIDs, pairing codes expire after 10 minutes and are single-use.
+* Rate limiting on the API, a 2 GB file cap and a 100 000 character text cap.
+
+## 🧪 Tests
+
+```bash
+node server/test/smoke.mjs     # 36 assertions: pairing, WS realtime, chunked upload,
+                               # byte-identical download, sniffing, session isolation,
+                               # path traversal, resume, revocation, session wipe
+```
+
+## 📄 License
+
+[MIT](LICENSE) © 2026 Ekkh1300 — use it, fork it, ship it.
+
+---
 # FileBridge — انتقال سریع فایل، متن و کلیپ‌بورد بین موبایل و کامپیوتر
 
 > **FileBridge** — a local-only (LAN) web app for instant two-way transfer of files, text and clipboard between your phone and PC. Scan a QR, get connected. Ships as a standalone `FileBridge.exe` for Windows (Node.js included, portable). [راهنمای فارسی در همین صفحه 👇](#استفاده) · [Download exe](../../releases) · v0.1.0
@@ -61,6 +158,7 @@ npm run dev
 - **تم Dark / Light**.
 - **Devices** — لیست دستگاه‌های جلسه؛ حذف (Revoke) توسط میزبان، Leave برای مهمان.
 - **End session for everyone** — فقط میزبان: جلسه برای همه بسته و **همه فایل‌ها همان لحظه از دیسک پاک می‌شوند**.
+- **Close FileBridge** — فقط میزبان: اپ کامل می‌بندد (فایل‌ها پاک می‌شوند و پنجرهٔ سیاه خودش بسته می‌شود).
 
 ---
 
