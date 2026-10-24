@@ -297,7 +297,7 @@ share op/
 │  ├─ build-exe.mjs      # esbuild + pkg → release/FileBridge.exe
 │  ├─ make-ico.mjs       # آیکون چندسایز .ico
 │  ├─ gen-icons.mjs      # PNG آیکون‌های PWA
-│  └─ tailscale-info.mjs # راهنمای HTTPS با Tailscale Serve
+│  ├─ tailscale-info.mjs # راهنمای HTTPS با Tailscale Serve\n│  └─ verify-release.mjs # تست end-to-end علیه هر نمونهٔ در حال اجرا (`npm run verify`)
 ├─ client/public/
 │  ├─ sw.js              # service worker (PWA: نصب + آفلاین، بدون کش کردن داده‌ها)
 │  └─ manifest.webmanifest

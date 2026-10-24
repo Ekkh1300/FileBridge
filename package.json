@@ -17,6 +17,7 @@
     "client:dev": "npm run dev -w client",
     "exe": "node tools/make-ico.mjs && node tools/build-exe.mjs",
     "installer": "& \"C:\\Program Files\\Inno Setup 7\\ISCC.exe\" installer\\filebridge.iss",
+    "verify": "node tools/verify-release.mjs",
     "tailscale": "node tools/tailscale-info.mjs"
   },
   "devDependencies": {
