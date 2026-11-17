@@ -59,24 +59,61 @@ function packageExe() {
   fs.rmSync(RELEASE_DIR, { recursive: true, force: true });
   fs.mkdirSync(RELEASE_DIR, { recursive: true });
   const cfg = path.join(ROOT, 'package.json'); // provides the pkg.assets field
-  try {
-    run(PKG_BIN, ['-c', cfg, APP_BUNDLE, '--target', 'node24-win-x64', '--output', EXE]);
-  } catch {
-    console.warn('node24 base binary unavailable — falling back to node22');
-    run(PKG_BIN, ['-c', cfg, APP_BUNDLE, '--target', 'node22-win-x64', '--output', EXE]);
+  const args = ['-c', cfg, APP_BUNDLE, '--target', 'node22-win-x64', '--output', EXE];
+
+  let base = iconBaseBinary();
+  if (base) {
+    // PKG_NODE_PATH also makes pkg-fetch skip the base-binary hash check.
+    run(PKG_BIN, args, { env: { ...process.env, PKG_NODE_PATH: base } });
+  } else {
+    // First build: let pkg fetch a base, then rebuild with the icon inside it.
+    console.log('no pkg base yet — fetching one first');
+    run(PKG_BIN, args);
+    base = iconBaseBinary();
+    if (!base) throw new Error('pkg base still missing after fetch');
+    run(PKG_BIN, args, { env: { ...process.env, PKG_NODE_PATH: base } });
   }
   console.log(`exe ready: ${(fs.statSync(EXE).size / 1024 / 1024).toFixed(1)} MB → ${EXE}`);
 }
 
-function setIcon() {
-  // pkg does not embed an icon — stamp ours into the exe resources afterwards.
+/* ------------------------------- icon + base ------------------------------ */
+
+const PKG_CACHE = process.env.PKG_CACHE_PATH
+  || path.join(process.env.USERPROFILE || process.env.HOME || '', '.pkg-cache');
+
+/**
+ * pkg cannot add an icon, and the usual trick (BeginUpdateResource after the
+ * build) destroys the payload pkg appends after the PE image. So the icon goes
+ * into the base Node binary *before* pkg runs: tools/add-icon-section.mjs adds
+ * a resource section, then pkg copies that binary and appends its payload as
+ * usual.
+ *
+ * Returns the path to a Node binary that already carries our icon, or null when
+ * no base has been fetched yet.
+ */
+function iconBaseBinary() {
   const ico = path.join(BUILD_DIR, 'FileBridge.ico');
-  execFileSync('powershell.exe', [
-    '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
-    path.join(__dirname, 'set-exe-icon.ps1'),
-    '-Exe', EXE, '-Ico', ico,
-  ], { stdio: 'inherit', cwd: ROOT });
-  console.log('icon stamped');
+  const bases = fs.existsSync(PKG_CACHE)
+    ? fs.readdirSync(PKG_CACHE, { withFileTypes: true })
+        .filter((d) => d.isDirectory())
+        .flatMap((d) => {
+          const dir = path.join(PKG_CACHE, d.name);
+          return fs.readdirSync(dir)
+            .filter((f) => f.startsWith('fetched-v') && f.endsWith('-win-x64'))
+            .map((f) => path.join(dir, f))
+            .sort()
+            .reverse();
+        })
+    : [];
+  if (!bases.length) return null;
+
+  const patched = path.join(BUILD_DIR, 'base-with-icon.exe');
+  execFileSync('node', [path.join(__dirname, 'add-icon-section.mjs'), bases[0], patched, ico], {
+    stdio: 'inherit',
+    cwd: ROOT,
+  });
+  console.log(`icon base ready: ${path.basename(bases[0])}`);
+  return patched;
 }
 
 function zip() {
@@ -118,6 +155,5 @@ function zip() {
 checkPreflight();
 bundle();
 packageExe();
-setIcon();
 try { zip(); } catch (e) { console.warn('zip skipped:', e.message); }
 console.log('\nDone.');

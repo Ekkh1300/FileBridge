@@ -10,7 +10,7 @@
  *      fall back to the cache when the network is unreachable.
  */
 
-const CACHE = 'filebridge-shell-v1';
+const CACHE = 'filebridge-shell-v2';
 const SHELL = [
   '/',
   '/index.html',
