@@ -68,6 +68,17 @@ function packageExe() {
   console.log(`exe ready: ${(fs.statSync(EXE).size / 1024 / 1024).toFixed(1)} MB → ${EXE}`);
 }
 
+function setIcon() {
+  // pkg does not embed an icon — stamp ours into the exe resources afterwards.
+  const ico = path.join(BUILD_DIR, 'FileBridge.ico');
+  execFileSync('powershell.exe', [
+    '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
+    path.join(__dirname, 'set-exe-icon.ps1'),
+    '-Exe', EXE, '-Ico', ico,
+  ], { stdio: 'inherit', cwd: ROOT });
+  console.log('icon stamped');
+}
+
 function zip() {
   // small "portable zip" with a Persian quick-start, via PowerShell Compress-Archive
   const quickStart = path.join(RELEASE_DIR, 'راهنمای باز شدن FileBridge.txt');
@@ -107,5 +118,6 @@ function zip() {
 checkPreflight();
 bundle();
 packageExe();
+setIcon();
 try { zip(); } catch (e) { console.warn('zip skipped:', e.message); }
 console.log('\nDone.');

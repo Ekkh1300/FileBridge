@@ -18,8 +18,8 @@ const pngs = SIZES.map((s) => ({ size: s, blob: encodePNG(s, s, draw(s)) }));
 // ICONDIR header: reserved(2)=0, type(2)=1(icon), count(2)
 const header = Buffer.alloc(6);
 header.writeUInt16LE(0, 0);
-header.writeUInt16LE(1, 1);
-header.writeUInt16LE(pngs.length, 2);
+header.writeUInt16LE(1, 2);
+header.writeUInt16LE(pngs.length, 4);
 
 // directory entries (16 bytes each), then image blobs
 const dirSize = 6 + 16 * pngs.length;

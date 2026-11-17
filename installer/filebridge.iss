@@ -24,6 +24,7 @@ UninstallDisplayIcon={app}\{#AppExeName}
 UninstallDisplayName={#AppName}
 OutputDir=..\release
 OutputBaseFilename=FileBridge-Setup-v{#AppVersion}
+SetupIconFile=..\build\FileBridge.ico
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
